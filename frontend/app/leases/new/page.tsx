@@ -58,15 +58,30 @@ export default function NewLeasePage() {
 
       // Upload lease document if provided
       if (leaseFile) {
+        // Fetch the "Lease Agreement" category ID
+        let categoryId = "1";
+        try {
+          const cats = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/documents/categories/`,
+            { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
+          );
+          if (cats.ok) {
+            const catData = await cats.json();
+            const list = catData.results || catData;
+            const leaseAgreement = list.find((c: { id: number; name: string }) => c.name === "Lease Agreement");
+            if (leaseAgreement) categoryId = String(leaseAgreement.id);
+            else if (list.length > 0) categoryId = String(list[0].id);
+          }
+        } catch { /* use default */ }
+
         const formData = new FormData();
         formData.append("file", leaseFile);
         formData.append("title", leaseFile.name);
-        formData.append("category", "1"); // Default category ID
+        formData.append("category", categoryId);
         try {
           await api.uploadDocument(lease.id, formData);
-        } catch {
-          // Don't fail the whole submission if upload fails
-          console.error("Document upload failed, but lease was created");
+        } catch (uploadErr) {
+          console.error("Document upload failed:", uploadErr);
         }
       }
 

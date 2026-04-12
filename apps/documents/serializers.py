@@ -33,15 +33,4 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
         max_size = 10 * 1024 * 1024  # 10 MB
         if value.size > max_size:
             raise serializers.ValidationError("File size cannot exceed 10 MB.")
-
-        allowed_types = [
-            "application/pdf",
-            "image/jpeg", "image/png",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ]
-        if value.content_type not in allowed_types:
-            raise serializers.ValidationError(
-                "Unsupported file type. Allowed: PDF, JPEG, PNG, DOC, DOCX."
-            )
         return value

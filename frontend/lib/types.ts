@@ -103,6 +103,21 @@ export interface LeaseAmendment {
   created_at: string;
 }
 
+export interface Document {
+  id: number;
+  category: number;
+  category_name: string;
+  title: string;
+  file: string;
+  file_size: number;
+  mime_type: string;
+  version: number;
+  is_current_version: boolean;
+  uploaded_by: number;
+  uploaded_by_name: string;
+  created_at: string;
+}
+
 export interface ScreeningRecord {
   id: number;
   lease: number;

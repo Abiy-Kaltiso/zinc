@@ -6,7 +6,7 @@ import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
-import { Lease, LeaseReview, ScreeningRecord, CommunicationLog } from "@/lib/types";
+import { Lease, LeaseReview, ScreeningRecord, CommunicationLog, Document } from "@/lib/types";
 
 export default function LeaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -16,24 +16,28 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
   const [reviews, setReviews] = useState<LeaseReview[]>([]);
   const [screening, setScreening] = useState<ScreeningRecord | null>(null);
   const [communications, setCommunications] = useState<CommunicationLog[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
   const [reviewComments, setReviewComments] = useState("");
   const [newMessage, setNewMessage] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   const leaseId = Number(id);
 
   async function loadData() {
     try {
-      const [leaseData, reviewsData, commsData] = await Promise.all([
+      const [leaseData, reviewsData, commsData, docsData] = await Promise.all([
         api.getLease(leaseId),
         api.getLeaseReviews(leaseId).catch(() => ({ results: [] })),
         api.getCommunications(leaseId).catch(() => ({ results: [] })),
+        api.getLeaseDocuments(leaseId).catch(() => ({ results: [] })),
       ]);
       setLease(leaseData);
       setReviews(reviewsData.results || reviewsData);
       setCommunications(commsData.results || commsData);
+      setDocuments(docsData.results || docsData);
 
       if (leaseData.status !== "draft") {
         try {
@@ -290,6 +294,71 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
             )}
           </div>
         )}
+
+        {/* Documents */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold mb-4">Documents</h2>
+          {documents.length > 0 ? (
+            <div className="space-y-3 mb-4">
+              {documents.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                  <div>
+                    <p className="text-sm font-medium">{doc.title}</p>
+                    <p className="text-xs text-gray-500">
+                      {doc.category_name} &middot; {(doc.file_size / 1024).toFixed(0)} KB &middot; Uploaded by {doc.uploaded_by_name} &middot; {new Date(doc.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <a
+                    href={doc.file.startsWith("http") ? doc.file : `http://localhost:8000${doc.file}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Download
+                  </a>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 mb-4">No documents uploaded</p>
+          )}
+          <div className="flex items-center gap-3">
+            <input
+              type="file"
+              onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+              className="text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            {uploadFile && (
+              <button
+                onClick={async () => {
+                  const formData = new FormData();
+                  formData.append("file", uploadFile);
+                  formData.append("title", uploadFile.name);
+                  // Fetch category
+                  try {
+                    const cats = await fetch(
+                      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/documents/categories/`,
+                      { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
+                    );
+                    if (cats.ok) {
+                      const catData = await cats.json();
+                      const list = catData.results || catData;
+                      formData.append("category", String(list[0]?.id || 1));
+                    }
+                  } catch { formData.append("category", "1"); }
+                  await handleAction(async () => {
+                    await api.uploadDocument(leaseId, formData);
+                    setUploadFile(null);
+                  });
+                }}
+                disabled={actionLoading}
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                Upload
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* Review History */}
         {reviews.length > 0 && (

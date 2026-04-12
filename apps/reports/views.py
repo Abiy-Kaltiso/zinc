@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from apps.accounts.permissions import IsBoardMember
 from apps.leases.models import Lease
 from apps.leases.serializers import LeaseSerializer
-from apps.properties.models import Unit
+from apps.properties.models import Property, Unit
 
 
 class DashboardView(APIView):
@@ -26,16 +26,14 @@ class DashboardView(APIView):
         active_leases = Lease.objects.filter(status=Lease.Status.ACTIVE)
         pending_leases = Lease.objects.filter(status=Lease.Status.PENDING_REVIEW)
 
-        occupancy = Unit.objects.aggregate(
-            total=Count("id"),
-            owner_occupied=Count("id", filter=Q(occupancy_status="owner_occupied")),
-            rented=Count("id", filter=Q(occupancy_status="rented")),
-            vacant=Count("id", filter=Q(occupancy_status="vacant")),
-        )
+        total_leases = Lease.objects.filter(
+            status__in=[Lease.Status.ACTIVE, Lease.Status.APPROVED, Lease.Status.PENDING_REVIEW]
+        ).count()
 
         return Response({
             "active_leases": active_leases.count(),
             "pending_reviews": pending_leases.count(),
+            "total_leases": total_leases,
             "expiring_30_days": active_leases.filter(
                 lease_end_date__lte=thirty_days, lease_end_date__gte=today
             ).count(),
@@ -45,7 +43,12 @@ class DashboardView(APIView):
             "expiring_90_days": active_leases.filter(
                 lease_end_date__lte=ninety_days, lease_end_date__gte=today
             ).count(),
-            "occupancy": occupancy,
+            "occupancy": {
+                "total": total_leases,
+                "owner_occupied": 0,
+                "rented": active_leases.count(),
+                "vacant": 0,
+            },
         })
 
 
@@ -55,12 +58,11 @@ class ActiveLeasesReportView(APIView):
     def get(self, request):
         leases = Lease.objects.filter(
             status=Lease.Status.ACTIVE
-        ).select_related("unit", "owner")
+        ).select_related("owner").prefetch_related("tenants")
 
-        # Optional filters
-        unit_id = request.query_params.get("unit")
-        if unit_id:
-            leases = leases.filter(unit_id=unit_id)
+        unit_number = request.query_params.get("unit_number")
+        if unit_number:
+            leases = leases.filter(unit_number=unit_number)
 
         owner_id = request.query_params.get("owner")
         if owner_id:
@@ -76,7 +78,10 @@ class ComplianceReportView(APIView):
     def get(self, request):
         leases = Lease.objects.filter(
             status__in=[Lease.Status.ACTIVE, Lease.Status.PENDING_REVIEW, Lease.Status.APPROVED]
-        ).select_related("unit", "owner")
+        ).select_related("owner").prefetch_related("tenants")
+
+        prop = Property.objects.first()
+        min_term = prop.minimum_lease_term_months if prop else 12
 
         report = []
         for lease in leases:
@@ -84,10 +89,8 @@ class ComplianceReportView(APIView):
             screening_complete = screening.all_checks_completed if screening else False
             screening_verified = screening.verified_at is not None if screening else False
 
-            min_term = lease.unit.hoa_property.minimum_lease_term_months
             term_compliant = lease.term_months >= min_term
 
-            doc_count = 0
             from django.contrib.contenttypes.models import ContentType
             from apps.documents.models import Document
             lease_ct = ContentType.objects.get_for_model(Lease)
@@ -97,7 +100,7 @@ class ComplianceReportView(APIView):
 
             report.append({
                 "lease_id": lease.pk,
-                "unit_number": lease.unit.unit_number,
+                "unit_number": lease.unit_number,
                 "tenant_name": lease.tenant_full_name,
                 "owner_name": lease.owner.get_full_name(),
                 "status": lease.status,
@@ -122,7 +125,7 @@ class ExpirationTimelineView(APIView):
             status=Lease.Status.ACTIVE,
             lease_end_date__gte=today,
             lease_end_date__lte=target,
-        ).select_related("unit", "owner").order_by("lease_end_date")
+        ).select_related("owner").prefetch_related("tenants").order_by("lease_end_date")
 
         serializer = LeaseSerializer(leases, many=True)
         return Response(serializer.data)
@@ -132,20 +135,19 @@ class OccupancyOverviewView(APIView):
     permission_classes = [IsBoardMember]
 
     def get(self, request):
-        units = Unit.objects.select_related("hoa_property").all()
-        data = []
-        for unit in units:
-            current_owner = unit.current_owner
-            active_lease = unit.leases.filter(status=Lease.Status.ACTIVE).first()
+        # Show lease-based occupancy since units are now free text
+        active_leases = Lease.objects.filter(
+            status=Lease.Status.ACTIVE
+        ).select_related("owner").prefetch_related("tenants")
 
+        data = []
+        for lease in active_leases:
             data.append({
-                "unit_id": unit.pk,
-                "unit_number": unit.unit_number,
-                "property": unit.hoa_property.name,
-                "occupancy_status": unit.occupancy_status,
-                "owner_name": current_owner.get_full_name() if current_owner else None,
-                "tenant_name": active_lease.tenant_full_name if active_lease else None,
-                "lease_end_date": active_lease.lease_end_date if active_lease else None,
+                "unit_number": lease.unit_number,
+                "occupancy_status": "rented",
+                "owner_name": lease.owner.get_full_name(),
+                "tenant_name": lease.tenant_full_name,
+                "lease_end_date": lease.lease_end_date,
             })
         return Response(data)
 
@@ -156,21 +158,24 @@ class LeaseExportCSVView(APIView):
     def get(self, request):
         leases = Lease.objects.filter(
             status__in=[Lease.Status.ACTIVE, Lease.Status.APPROVED, Lease.Status.PENDING_REVIEW]
-        ).select_related("unit", "owner")
+        ).select_related("owner").prefetch_related("tenants")
 
         output = StringIO()
         writer = csv.writer(output)
         writer.writerow([
-            "Lease ID", "Unit", "Owner", "Tenant", "Start Date",
+            "Lease ID", "Unit", "Owner", "Tenant(s)", "Start Date",
             "End Date", "Monthly Rent", "Status", "Term (months)",
         ])
 
         for lease in leases:
+            tenant_names = ", ".join(
+                t.full_name for t in lease.tenants.all()
+            )
             writer.writerow([
                 lease.pk,
-                lease.unit.unit_number,
+                lease.unit_number,
                 lease.owner.get_full_name(),
-                lease.tenant_full_name,
+                tenant_names,
                 lease.lease_start_date,
                 lease.lease_end_date,
                 lease.monthly_rent,

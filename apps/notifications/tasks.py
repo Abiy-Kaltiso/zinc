@@ -15,12 +15,12 @@ def check_expiring_leases():
         expiring = Lease.objects.filter(
             status=Lease.Status.ACTIVE,
             lease_end_date=target_date,
-        ).select_related("unit", "owner")
+        ).select_related("owner")
 
         for lease in expiring:
             title = f"Lease expiring in {days} days"
             message = (
-                f"Lease for Unit {lease.unit.unit_number} "
+                f"Lease for Unit {lease.unit_number} "
                 f"(Tenant: {lease.tenant_full_name}) "
                 f"expires on {lease.lease_end_date}."
             )
@@ -37,26 +37,16 @@ def auto_expire_leases():
     expired_leases = Lease.objects.filter(
         status=Lease.Status.ACTIVE,
         lease_end_date__lt=today,
-    ).select_related("unit", "owner")
+    ).select_related("owner")
 
     for lease in expired_leases:
         lease.status = Lease.Status.EXPIRED
         lease.expired_at = timezone.now()
         lease.save()
 
-        # Check if unit should revert to owner_occupied
-        other_active = Lease.objects.filter(
-            unit=lease.unit,
-            status=Lease.Status.ACTIVE,
-        ).exclude(pk=lease.pk).exists()
-
-        if not other_active:
-            lease.unit.occupancy_status = "owner_occupied"
-            lease.unit.save()
-
         title = "Lease expired"
         message = (
-            f"The lease for Unit {lease.unit.unit_number} "
+            f"The lease for Unit {lease.unit_number} "
             f"(Tenant: {lease.tenant_full_name}) has expired."
         )
         notify_user(lease.owner, "lease_expired", title, message, lease)

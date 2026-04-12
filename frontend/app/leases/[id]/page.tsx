@@ -109,10 +109,18 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
           <h2 className="text-lg font-semibold mb-4">Lease Details</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
             <div>
-              <p className="text-sm text-gray-500">Tenant</p>
-              <p className="font-medium">{lease.tenant_full_name}</p>
-              {lease.tenant_email && <p className="text-sm text-gray-500">{lease.tenant_email}</p>}
-              {lease.tenant_phone && <p className="text-sm text-gray-500">{lease.tenant_phone}</p>}
+              <p className="text-sm text-gray-500">Tenant(s)</p>
+              {lease.tenants && lease.tenants.length > 0 ? (
+                lease.tenants.map((tenant, idx) => (
+                  <div key={idx} className={idx > 0 ? "mt-2 pt-2 border-t border-gray-100" : ""}>
+                    <p className="font-medium">{tenant.first_name} {tenant.last_name}</p>
+                    {tenant.email && <p className="text-sm text-gray-500">{tenant.email}</p>}
+                    {tenant.phone && <p className="text-sm text-gray-500">{tenant.phone}</p>}
+                  </div>
+                ))
+              ) : (
+                <p className="font-medium">{lease.tenant_full_name || "—"}</p>
+              )}
             </div>
             <div>
               <p className="text-sm text-gray-500">Owner</p>

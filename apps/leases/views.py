@@ -18,8 +18,8 @@ from apps.leases.services import LeaseService
 
 class LeaseListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
-    filterset_fields = ["status", "unit", "owner"]
-    search_fields = ["tenant_first_name", "tenant_last_name", "unit__unit_number"]
+    filterset_fields = ["status", "unit_number", "owner"]
+    search_fields = ["unit_number", "tenants__first_name", "tenants__last_name"]
     ordering_fields = ["created_at", "lease_start_date", "lease_end_date", "status"]
 
     def get_serializer_class(self):
@@ -29,7 +29,7 @@ class LeaseListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Lease.objects.select_related("unit", "unit__hoa_property", "owner")
+        qs = Lease.objects.select_related("owner").prefetch_related("tenants")
         if user.is_board_member:
             return qs
         return qs.filter(owner=user)
@@ -41,7 +41,7 @@ class LeaseListCreateView(generics.ListCreateAPIView):
 class LeaseDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = LeaseSerializer
     permission_classes = [IsAuthenticated, IsBoardMemberOrLeaseOwner]
-    queryset = Lease.objects.select_related("unit", "unit__hoa_property", "owner")
+    queryset = Lease.objects.select_related("owner").prefetch_related("tenants")
 
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):
@@ -60,7 +60,7 @@ class LeaseSubmitView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        lease = Lease.objects.select_related("unit__hoa_property").get(pk=pk)
+        lease = Lease.objects.get(pk=pk)
         lease = LeaseService.submit_for_review(lease, request.user)
         return Response(LeaseSerializer(lease).data)
 
@@ -69,7 +69,7 @@ class LeaseReviewView(APIView):
     permission_classes = [IsBoardMember]
 
     def post(self, request, pk):
-        lease = Lease.objects.select_related("unit__hoa_property").get(pk=pk)
+        lease = Lease.objects.get(pk=pk)
         serializer = LeaseReviewCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         review = LeaseService.review_lease(
@@ -120,7 +120,7 @@ class LeaseAmendmentListCreateView(generics.ListCreateAPIView):
         return LeaseAmendment.objects.filter(lease_id=self.kwargs["pk"]).select_related("amended_by")
 
     def create(self, request, pk):
-        lease = Lease.objects.select_related("unit__hoa_property").get(pk=pk)
+        lease = Lease.objects.get(pk=pk)
         serializer = LeaseAmendmentCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         amendment = LeaseService.request_amendment(
@@ -155,4 +155,4 @@ class LeaseExpiringView(generics.ListAPIView):
             status=Lease.Status.ACTIVE,
             lease_end_date__lte=target_date,
             lease_end_date__gte=date.today(),
-        ).select_related("unit", "owner")
+        ).select_related("owner").prefetch_related("tenants")

@@ -1,7 +1,7 @@
 import pytest
 from datetime import date, timedelta
 
-from apps.leases.tests.factories import LeaseFactory
+from apps.leases.tests.factories import LeaseFactory, TenantFactory
 
 
 @pytest.mark.django_db
@@ -11,9 +11,14 @@ class TestLeaseModel:
         assert lease.status == "draft"
         assert lease.pk is not None
 
-    def test_tenant_full_name(self):
-        lease = LeaseFactory(tenant_first_name="John", tenant_last_name="Doe")
+    def test_tenant_full_name_with_tenants(self):
+        lease = LeaseFactory()
+        TenantFactory(lease=lease, first_name="John", last_name="Doe")
         assert lease.tenant_full_name == "John Doe"
+
+    def test_tenant_full_name_no_tenants(self):
+        lease = LeaseFactory()
+        assert lease.tenant_full_name == ""
 
     def test_term_months(self):
         lease = LeaseFactory(
@@ -27,5 +32,22 @@ class TestLeaseModel:
         assert lease.days_until_expiration == 30
 
     def test_str_representation(self):
+        lease = LeaseFactory(unit_number="101A")
+        assert "Unit 101A" in str(lease)
+
+    def test_unit_number_stored(self):
+        lease = LeaseFactory(unit_number="B-205")
+        assert lease.unit_number == "B-205"
+
+
+@pytest.mark.django_db
+class TestTenantModel:
+    def test_create_tenant(self):
+        tenant = TenantFactory(first_name="Jane", last_name="Smith")
+        assert tenant.full_name == "Jane Smith"
+
+    def test_multiple_tenants_on_lease(self):
         lease = LeaseFactory()
-        assert f"Lease #{lease.pk}" in str(lease)
+        TenantFactory(lease=lease, first_name="A", last_name="One")
+        TenantFactory(lease=lease, first_name="B", last_name="Two")
+        assert lease.tenants.count() == 2

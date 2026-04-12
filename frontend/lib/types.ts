@@ -35,17 +35,21 @@ export interface Unit {
   updated_at: string;
 }
 
+export interface Tenant {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+}
+
 export interface Lease {
   id: number;
-  unit: number;
   unit_number: string;
   owner: number;
   owner_name: string;
-  tenant_first_name: string;
-  tenant_last_name: string;
+  tenants: Tenant[];
   tenant_full_name: string;
-  tenant_email: string;
-  tenant_phone: string;
   lease_start_date: string;
   lease_end_date: string;
   monthly_rent: string;

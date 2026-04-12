@@ -12,14 +12,8 @@ class Lease(models.Model):
         EXPIRED = "expired", "Expired"
         TERMINATED = "terminated", "Terminated"
 
-    unit = models.ForeignKey("properties.Unit", on_delete=models.CASCADE, related_name="leases")
+    unit_number = models.CharField(max_length=50, default="", help_text="Unit number (e.g., 101, 2A)")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="leases")
-
-    # Tenant info
-    tenant_first_name = models.CharField(max_length=100)
-    tenant_last_name = models.CharField(max_length=100)
-    tenant_email = models.EmailField(blank=True)
-    tenant_phone = models.CharField(max_length=20, blank=True)
 
     # Lease terms
     lease_start_date = models.DateField()
@@ -45,7 +39,7 @@ class Lease(models.Model):
         indexes = [
             models.Index(fields=["status"]),
             models.Index(fields=["lease_end_date"]),
-            models.Index(fields=["unit", "status"]),
+            models.Index(fields=["unit_number", "status"]),
             models.Index(fields=["owner", "status"]),
         ]
         constraints = [
@@ -56,11 +50,12 @@ class Lease(models.Model):
         ]
 
     def __str__(self):
-        return f"Lease #{self.pk} - Unit {self.unit.unit_number} ({self.get_status_display()})"
+        return f"Lease #{self.pk} - Unit {self.unit_number} ({self.get_status_display()})"
 
     @property
     def tenant_full_name(self):
-        return f"{self.tenant_first_name} {self.tenant_last_name}"
+        first_tenant = self.tenants.first()
+        return first_tenant.full_name if first_tenant else ""
 
     @property
     def term_months(self):
@@ -125,3 +120,22 @@ class LeaseAmendment(models.Model):
 
     def __str__(self):
         return f"Amendment to Lease #{self.lease_id}"
+
+
+class Tenant(models.Model):
+    lease = models.ForeignKey(Lease, on_delete=models.CASCADE, related_name="tenants")
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"

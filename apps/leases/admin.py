@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.leases.models import Lease, LeaseAmendment, LeaseReview
+from apps.leases.models import Lease, LeaseAmendment, LeaseReview, Tenant
 
 
 class LeaseReviewInline(admin.TabularInline):
@@ -15,19 +15,24 @@ class LeaseAmendmentInline(admin.TabularInline):
     readonly_fields = ["amended_by", "created_at"]
 
 
+class TenantInline(admin.TabularInline):
+    model = Tenant
+    extra = 1
+
+
 @admin.register(Lease)
 class LeaseAdmin(admin.ModelAdmin):
     list_display = [
-        "id", "unit", "owner", "tenant_first_name", "tenant_last_name",
+        "id", "unit_number", "owner",
         "lease_start_date", "lease_end_date", "status",
     ]
-    list_filter = ["status", "unit__hoa_property"]
+    list_filter = ["status"]
     search_fields = [
-        "tenant_first_name", "tenant_last_name",
-        "unit__unit_number", "owner__email",
+        "unit_number", "owner__email",
+        "tenants__first_name", "tenants__last_name",
     ]
-    raw_id_fields = ["unit", "owner"]
-    inlines = [LeaseReviewInline, LeaseAmendmentInline]
+    raw_id_fields = ["owner"]
+    inlines = [TenantInline, LeaseReviewInline, LeaseAmendmentInline]
 
 
 @admin.register(LeaseReview)

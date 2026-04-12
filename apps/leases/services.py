@@ -10,6 +10,20 @@ from apps.leases.validators import (
 )
 
 
+def _get_minimum_lease_months():
+    from apps.properties.models import Property
+
+    prop = Property.objects.first()
+    return prop.minimum_lease_term_months if prop else 12
+
+
+def _get_screening_required():
+    from apps.properties.models import Property
+
+    prop = Property.objects.first()
+    return prop.require_screening_for_approval if prop else True
+
+
 class LeaseService:
     @staticmethod
     @transaction.atomic
@@ -19,29 +33,28 @@ class LeaseService:
         if lease.owner != user and not user.is_board_member:
             raise ValidationError("You can only submit your own leases.")
 
-        # Validate owner owns the unit
-        if not lease.unit.ownerships.filter(owner=lease.owner, is_current=True).exists():
-            raise ValidationError("The lease owner must be the current owner of the unit.")
-
         # Validate minimum lease term
-        minimum_months = lease.unit.hoa_property.minimum_lease_term_months
+        minimum_months = _get_minimum_lease_months()
         validate_minimum_lease_term(lease.lease_start_date, lease.lease_end_date, minimum_months)
 
-        # Check no overlapping active lease
+        # Check no overlapping active lease on the same unit
         validate_no_overlapping_active_lease(
-            lease.unit, lease.lease_start_date, lease.lease_end_date, exclude_lease_id=lease.pk
+            lease.unit_number, lease.lease_start_date, lease.lease_end_date, exclude_lease_id=lease.pk
         )
 
         # Create screening record
         from apps.screening.models import ScreeningChecklist, ScreeningCheckResult, ScreeningRecord
+        from apps.properties.models import Property
 
         screening_record, _ = ScreeningRecord.objects.get_or_create(lease=lease)
-        checklist_items = ScreeningChecklist.objects.filter(hoa_property=lease.unit.hoa_property)
-        for item in checklist_items:
-            ScreeningCheckResult.objects.get_or_create(
-                screening=screening_record,
-                checklist_item=item,
-            )
+        prop = Property.objects.first()
+        if prop:
+            checklist_items = ScreeningChecklist.objects.filter(hoa_property=prop)
+            for item in checklist_items:
+                ScreeningCheckResult.objects.get_or_create(
+                    screening=screening_record,
+                    checklist_item=item,
+                )
 
         # Transition status
         lease.status = Lease.Status.PENDING_REVIEW
@@ -58,7 +71,6 @@ class LeaseService:
         if not reviewer.is_board_member:
             raise ValidationError("Only board members can review leases.")
 
-        # Create review record
         review = LeaseReview.objects.create(
             lease=lease,
             reviewer=reviewer,
@@ -67,9 +79,7 @@ class LeaseService:
         )
 
         if decision == LeaseReview.Decision.APPROVED:
-            # Check screening requirements
-            prop = lease.unit.hoa_property
-            if prop.require_screening_for_approval:
+            if _get_screening_required():
                 screening = getattr(lease, "screening", None)
                 if not screening or not screening.all_checks_completed:
                     raise ValidationError(
@@ -97,11 +107,6 @@ class LeaseService:
         lease.status = Lease.Status.ACTIVE
         lease.activated_at = timezone.now()
         lease.save()
-
-        # Update unit occupancy status
-        lease.unit.occupancy_status = "rented"
-        lease.unit.save()
-
         return lease
 
     @staticmethod
@@ -113,17 +118,6 @@ class LeaseService:
         lease.status = Lease.Status.TERMINATED
         lease.terminated_at = timezone.now()
         lease.save()
-
-        # Check if there are other active leases on this unit
-        other_active = Lease.objects.filter(
-            unit=lease.unit,
-            status=Lease.Status.ACTIVE,
-        ).exclude(pk=lease.pk).exists()
-
-        if not other_active:
-            lease.unit.occupancy_status = "owner_occupied"
-            lease.unit.save()
-
         return lease
 
     @staticmethod
@@ -141,14 +135,12 @@ class LeaseService:
         requires_approval = False
 
         if new_end_date:
-            # Validate against minimum term
-            minimum_months = lease.unit.hoa_property.minimum_lease_term_months
+            minimum_months = _get_minimum_lease_months()
             validate_amendment_term(lease, new_end_date, minimum_months)
 
             amendment.previous_end_date = lease.lease_end_date
             amendment.new_end_date = new_end_date
 
-            # If shortening the term, require board approval
             if new_end_date < lease.lease_end_date:
                 requires_approval = True
 
@@ -159,7 +151,6 @@ class LeaseService:
         amendment.requires_board_approval = requires_approval
         amendment.save()
 
-        # Auto-apply if no board approval needed
         if not requires_approval:
             amendment.approved = True
             amendment.save()

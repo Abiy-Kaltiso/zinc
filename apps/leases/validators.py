@@ -11,11 +11,11 @@ def validate_minimum_lease_term(lease_start, lease_end, minimum_months):
         )
 
 
-def validate_no_overlapping_active_lease(unit, lease_start, lease_end, exclude_lease_id=None):
+def validate_no_overlapping_active_lease(unit_number, lease_start, lease_end, exclude_lease_id=None):
     from apps.leases.models import Lease
 
     overlapping = Lease.objects.filter(
-        unit=unit,
+        unit_number=unit_number,
         status__in=[Lease.Status.ACTIVE, Lease.Status.APPROVED, Lease.Status.PENDING_REVIEW],
         lease_start_date__lt=lease_end,
         lease_end_date__gt=lease_start,

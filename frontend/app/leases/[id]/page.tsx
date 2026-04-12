@@ -168,13 +168,21 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
           <h2 className="text-lg font-semibold mb-4">Actions</h2>
           <div className="flex flex-wrap gap-3">
             {lease.status === "draft" && isOwner && (
-              <button
-                onClick={() => handleAction(() => api.submitLease(lease.id))}
-                disabled={actionLoading}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                Submit for Review
-              </button>
+              <>
+                <button
+                  onClick={() => router.push(`/leases/${lease.id}/edit`)}
+                  className="px-4 py-2 text-sm bg-gray-700 text-white rounded-lg hover:bg-gray-800"
+                >
+                  Edit Lease
+                </button>
+                <button
+                  onClick={() => handleAction(() => api.submitLease(lease.id))}
+                  disabled={actionLoading}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Submit for Review
+                </button>
+              </>
             )}
 
             {lease.status === "pending_review" && isBoardMember && (

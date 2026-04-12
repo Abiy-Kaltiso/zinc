@@ -46,9 +46,11 @@ class LeaseCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
     def validate(self, data):
-        if data["lease_end_date"] <= data["lease_start_date"]:
+        start = data.get("lease_start_date", getattr(self.instance, "lease_start_date", None))
+        end = data.get("lease_end_date", getattr(self.instance, "lease_end_date", None))
+        if start and end and end <= start:
             raise serializers.ValidationError("Lease end date must be after the start date.")
-        if not data.get("tenants"):
+        if "tenants" in data and not data["tenants"]:
             raise serializers.ValidationError("At least one tenant is required.")
         return data
 
@@ -58,6 +60,19 @@ class LeaseCreateSerializer(serializers.ModelSerializer):
         for tenant_data in tenants_data:
             Tenant.objects.create(lease=lease, **tenant_data)
         return lease
+
+    def update(self, instance, validated_data):
+        tenants_data = validated_data.pop("tenants", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if tenants_data is not None:
+            instance.tenants.all().delete()
+            for tenant_data in tenants_data:
+                Tenant.objects.create(lease=instance, **tenant_data)
+
+        return instance
 
 
 class LeaseReviewSerializer(serializers.ModelSerializer):

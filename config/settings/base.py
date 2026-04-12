@@ -133,8 +133,8 @@ SIMPLE_JWT = {
 
 # drf-spectacular
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Zinc HOA Lease Management API",
-    "DESCRIPTION": "API for managing HOA leases, tenant screening, and compliance.",
+    "TITLE": "Glenwood Park Lease Management API",
+    "DESCRIPTION": "API for managing Glenwood Park HOA leases, tenant screening, and compliance.",
     "VERSION": "1.0.0",
 }
 

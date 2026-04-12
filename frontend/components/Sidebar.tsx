@@ -27,7 +27,7 @@ export function Sidebar() {
   return (
     <div className="flex flex-col w-64 bg-gray-900 text-white min-h-screen">
       <div className="p-4 border-b border-gray-700">
-        <h1 className="text-xl font-bold">Zinc HOA</h1>
+        <h1 className="text-xl font-bold">Glenwood Park</h1>
         <p className="text-sm text-gray-400 mt-1">Lease Management</p>
       </div>
 

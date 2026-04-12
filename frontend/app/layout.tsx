@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Zinc HOA - Lease Management",
-  description: "HOA Lease Management System",
+  title: "Glenwood Park - Lease Management",
+  description: "Glenwood Park HOA Lease Management System",
 };
 
 export default function RootLayout({

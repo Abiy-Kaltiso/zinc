@@ -78,5 +78,7 @@ class ScreeningUnverifyView(APIView):
         screening = ScreeningRecord.objects.get(lease_id=lease_pk)
         screening.verified_by = None
         screening.verified_at = None
+        screening.save(update_fields=["verified_by", "verified_at", "updated_at"])
         screening.update_completion_status()
+        screening.refresh_from_db()
         return Response(ScreeningRecordSerializer(screening).data)

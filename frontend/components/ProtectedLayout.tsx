@@ -17,8 +17,8 @@ export function ProtectedLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      <div className="flex items-center justify-center min-h-screen bg-[#f8f9fb]">
+        <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
       </div>
     );
   }
@@ -28,8 +28,8 @@ export function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 bg-gray-50 overflow-auto">
-        <div className="p-8">{children}</div>
+      <main className="flex-1 bg-[#f8f9fb] overflow-auto">
+        <div className="max-w-6xl mx-auto px-8 py-8">{children}</div>
       </main>
     </div>
   );

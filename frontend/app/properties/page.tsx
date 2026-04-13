@@ -29,71 +29,68 @@ export default function PropertiesPage() {
     }
   }, [selectedProperty]);
 
-  const statusColors: Record<string, string> = {
-    owner_occupied: "bg-green-100 text-green-700",
-    rented: "bg-blue-100 text-blue-700",
-    vacant: "bg-gray-100 text-gray-600",
+  const statusStyles: Record<string, string> = {
+    owner_occupied: "bg-emerald-50 text-emerald-700",
+    rented: "bg-indigo-50 text-indigo-700",
+    vacant: "bg-gray-50 text-gray-500",
   };
 
   return (
     <ProtectedLayout>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Properties & Units</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Properties</h1>
+          <p className="text-sm text-gray-400 mt-1">Community properties and unit registry</p>
+        </div>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+          <div className="flex justify-center py-16">
+            <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
           </div>
         ) : (
           <>
             {properties.map((prop) => (
-              <div key={prop.id} className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div key={prop.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold">{prop.name}</h2>
-                    <p className="text-sm text-gray-500">{prop.address}</p>
+                    <h2 className="text-base font-semibold text-gray-900">{prop.name}</h2>
+                    <p className="text-sm text-gray-400 mt-0.5">{prop.address}</p>
                   </div>
-                  <div className="text-right text-sm text-gray-500">
-                    <p>Min lease term: <span className="font-medium">{prop.minimum_lease_term_months} months</span></p>
-                    <p>Screening required: <span className="font-medium">{prop.require_screening_for_approval ? "Yes" : "No"}</span></p>
+                  <div className="text-right text-xs text-gray-400 space-y-1">
+                    <p>Min term: <span className="font-medium text-gray-600">{prop.minimum_lease_term_months}mo</span></p>
+                    <p>Screening: <span className="font-medium text-gray-600">{prop.require_screening_for_approval ? "Required" : "Optional"}</span></p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setSelectedProperty(prop.id)}
-                  className={`text-sm ${selectedProperty === prop.id ? "text-blue-600 font-medium" : "text-gray-500 hover:text-gray-700"}`}
-                >
-                  {prop.unit_count} units {selectedProperty === prop.id ? "(showing)" : "(show)"}
-                </button>
               </div>
             ))}
 
             {selectedProperty && units.length > 0 && (
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div className="p-4 border-b border-gray-200">
-                  <h3 className="font-semibold">Units</h3>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900">Units</h3>
                 </div>
                 <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Address</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Unit</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Address</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Owner</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Details</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody>
                     {units.map((unit) => (
-                      <tr key={unit.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm font-medium">{unit.unit_number}</td>
+                      <tr key={unit.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{unit.unit_number}</td>
                         <td className="px-6 py-4 text-sm text-gray-500">{unit.address_line}</td>
-                        <td className="px-6 py-4 text-sm">{unit.current_owner_name || "—"}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{unit.current_owner_name || "—"}</td>
                         <td className="px-6 py-4">
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[unit.occupancy_status]}`}>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${statusStyles[unit.occupancy_status]}`}>
                             {unit.occupancy_status.replace("_", " ")}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
+                        <td className="px-6 py-4 text-sm text-gray-400">
                           {unit.bedrooms && `${unit.bedrooms}bd`}
                           {unit.bathrooms && ` / ${unit.bathrooms}ba`}
                           {unit.square_feet && ` / ${unit.square_feet}sqft`}

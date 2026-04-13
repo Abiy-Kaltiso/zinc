@@ -115,7 +115,7 @@ export default function EditLeasePage({ params }: { params: Promise<{ id: string
               required
               value={form.unit_number}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -135,22 +135,22 @@ export default function EditLeasePage({ params }: { params: Promise<{ id: string
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">First Name</label>
                     <input name="first_name" required value={tenant.first_name} onChange={(e) => handleTenantChange(idx, e)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Last Name</label>
                     <input name="last_name" required value={tenant.last_name} onChange={(e) => handleTenantChange(idx, e)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Email</label>
                     <input name="email" type="email" value={tenant.email} onChange={(e) => handleTenantChange(idx, e)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Phone</label>
                     <input name="phone" value={tenant.phone} onChange={(e) => handleTenantChange(idx, e)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                   </div>
                 </div>
               </div>
@@ -166,23 +166,23 @@ export default function EditLeasePage({ params }: { params: Promise<{ id: string
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Start Date</label>
                 <input name="lease_start_date" type="date" required value={form.lease_start_date} onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">End Date</label>
                 <input name="lease_end_date" type="date" required value={form.lease_end_date} onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Monthly Rent ($)</label>
                 <input name="monthly_rent" type="number" step="0.01" required value={form.monthly_rent} onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
             </div>
             <div className="mt-4">
               <label className="block text-sm text-gray-600 mb-1">Additional Terms / Notes</label>
               <textarea name="lease_terms" rows={3} value={form.lease_terms} onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
           </fieldset>
 
@@ -192,7 +192,7 @@ export default function EditLeasePage({ params }: { params: Promise<{ id: string
               Cancel
             </button>
             <button type="submit" disabled={saving}
-              className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+              className="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50">
               {saving ? "Saving..." : "Save Changes"}
             </button>
           </div>

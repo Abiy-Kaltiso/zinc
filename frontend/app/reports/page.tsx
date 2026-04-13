@@ -35,123 +35,126 @@ export default function ReportsPage() {
     <ProtectedLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Reports</h1>
+            <p className="text-sm text-gray-400 mt-1">Compliance and occupancy analytics</p>
+          </div>
           <a
             href={api.getExportUrl("csv")}
-            className="px-4 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+            className="px-4 py-2.5 text-xs font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
           >
             Export CSV
           </a>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab("compliance")}
-            className={`px-4 py-2 text-sm rounded-lg ${
-              activeTab === "compliance" ? "bg-gray-900 text-white" : "bg-white border border-gray-300 text-gray-700"
-            }`}
-          >
-            Compliance Report
-          </button>
-          <button
-            onClick={() => setActiveTab("occupancy")}
-            className={`px-4 py-2 text-sm rounded-lg ${
-              activeTab === "occupancy" ? "bg-gray-900 text-white" : "bg-white border border-gray-300 text-gray-700"
-            }`}
-          >
-            Occupancy Overview
-          </button>
+        <div className="flex gap-1.5">
+          {[
+            { label: "Compliance", value: "compliance" as const },
+            { label: "Occupancy", value: "occupancy" as const },
+          ].map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                activeTab === tab.value
+                  ? "bg-gray-900 text-white shadow-sm"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+          <div className="flex justify-center py-16">
+            <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
           </div>
         ) : activeTab === "compliance" ? (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tenant</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Term</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Term OK</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Screening</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Verified</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Docs</th>
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Unit</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Tenant</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Owner</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Term</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Term OK</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Screening</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Verified</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Docs</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {compliance.map((row) => (
-                  <tr key={row.lease_id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium">{row.unit_number}</td>
-                    <td className="px-6 py-4 text-sm">{row.tenant_name}</td>
-                    <td className="px-6 py-4 text-sm">{row.owner_name}</td>
-                    <td className="px-6 py-4 text-sm">{row.term_months} mo</td>
+                  <tr key={row.lease_id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{row.unit_number}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{row.tenant_name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{row.owner_name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{row.term_months}mo</td>
                     <td className="px-6 py-4">
-                      <span className={`text-sm ${row.term_compliant ? "text-green-600" : "text-red-600"}`}>
-                        {row.term_compliant ? "Yes" : "No"}
-                      </span>
+                      {row.term_compliant ? (
+                        <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Pass</span>
+                      ) : (
+                        <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-md">Fail</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-sm ${row.screening_complete ? "text-green-600" : "text-yellow-600"}`}>
-                        {row.screening_complete ? "Complete" : "Pending"}
-                      </span>
+                      {row.screening_complete ? (
+                        <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Complete</span>
+                      ) : (
+                        <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Pending</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-sm ${row.screening_verified ? "text-green-600" : "text-gray-400"}`}>
-                        {row.screening_verified ? "Yes" : "No"}
-                      </span>
+                      {row.screening_verified ? (
+                        <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Yes</span>
+                      ) : (
+                        <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md">No</span>
+                      )}
                     </td>
-                    <td className="px-6 py-4 text-sm">{row.document_count}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{row.document_count}</td>
                   </tr>
                 ))}
                 {compliance.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">No compliance data</td>
+                    <td colSpan={8} className="px-6 py-16 text-center text-sm text-gray-400">No compliance data</td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Property</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tenant</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lease Ends</th>
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Unit</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Owner</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Tenant</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Lease Ends</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {occupancy.map((row, i) => (
-                  <tr key={i} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium">{String(row.unit_number)}</td>
-                    <td className="px-6 py-4 text-sm">{String(row.property)}</td>
+                  <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{String(row.unit_number)}</td>
                     <td className="px-6 py-4">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        row.occupancy_status === "rented" ? "bg-blue-100 text-blue-700" :
-                        row.occupancy_status === "vacant" ? "bg-gray-100 text-gray-600" :
-                        "bg-green-100 text-green-700"
-                      }`}>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700">
                         {String(row.occupancy_status).replace("_", " ")}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm">{row.owner_name ? String(row.owner_name) : "—"}</td>
-                    <td className="px-6 py-4 text-sm">{row.tenant_name ? String(row.tenant_name) : "—"}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-600">{row.owner_name ? String(row.owner_name) : "—"}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{row.tenant_name ? String(row.tenant_name) : "—"}</td>
+                    <td className="px-6 py-4 text-sm text-gray-400">
                       {row.lease_end_date ? String(row.lease_end_date) : "—"}
                     </td>
                   </tr>
                 ))}
                 {occupancy.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">No occupancy data</td>
+                    <td colSpan={5} className="px-6 py-16 text-center text-sm text-gray-400">No occupancy data</td>
                   </tr>
                 )}
               </tbody>

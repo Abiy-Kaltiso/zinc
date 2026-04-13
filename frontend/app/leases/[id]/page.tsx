@@ -109,7 +109,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         )}
 
         {/* Lease Details */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-semibold mb-4">Lease Details</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
             <div>
@@ -164,7 +164,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Actions */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-semibold mb-4">Actions</h2>
           <div className="flex flex-wrap gap-3">
             {lease.status === "draft" && isOwner && (
@@ -178,7 +178,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                 <button
                   onClick={() => handleAction(() => api.submitLease(lease.id))}
                   disabled={actionLoading}
-                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
                 >
                   Submit for Review
                 </button>
@@ -193,7 +193,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                     value={reviewComments}
                     onChange={(e) => setReviewComments(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <button
@@ -250,7 +250,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Screening Status */}
         {screening && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Screening Status</h2>
               {screening.all_checks_completed ? (
@@ -277,9 +277,17 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                     {isBoardMember && check.status === "pending" && (
                       <button
                         onClick={() => handleAction(() => api.updateScreeningCheck(leaseId, check.id, { status: "completed" }))}
-                        className="text-xs text-blue-600 hover:text-blue-800"
+                        className="text-xs text-indigo-600 hover:text-indigo-700"
                       >
                         Mark Complete
+                      </button>
+                    )}
+                    {isBoardMember && check.status === "completed" && (
+                      <button
+                        onClick={() => handleAction(() => api.updateScreeningCheck(leaseId, check.id, { status: "pending" }))}
+                        className="text-xs text-red-500 hover:text-red-700"
+                      >
+                        Reset
                       </button>
                     )}
                   </div>
@@ -296,15 +304,26 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
               </button>
             )}
             {screening.verified_at && (
-              <p className="mt-4 text-sm text-green-600">
-                Verified by {screening.verified_by_name} on {new Date(screening.verified_at).toLocaleDateString()}
-              </p>
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm text-green-600">
+                  Verified by {screening.verified_by_name} on {new Date(screening.verified_at).toLocaleDateString()}
+                </p>
+                {isBoardMember && (
+                  <button
+                    onClick={() => handleAction(() => api.unverifyScreening(leaseId))}
+                    disabled={actionLoading}
+                    className="px-3 py-1.5 text-xs text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Undo Verification
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
 
         {/* Documents */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-semibold mb-4">Documents</h2>
           {documents.length > 0 ? (
             <div className="space-y-3 mb-4">
@@ -320,7 +339,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                     href={doc.file.startsWith("http") ? doc.file : `http://localhost:8000${doc.file}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:text-blue-800"
+                    className="text-sm text-indigo-600 hover:text-indigo-700"
                   >
                     Download
                   </a>
@@ -360,7 +379,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                   });
                 }}
                 disabled={actionLoading}
-                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
               >
                 Upload
               </button>
@@ -370,7 +389,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Review History */}
         {reviews.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-lg font-semibold mb-4">Review History</h2>
             <div className="space-y-4">
               {reviews.map((review) => (
@@ -394,7 +413,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
         )}
 
         {/* Communication */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-semibold mb-4">Communication</h2>
           <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
             {communications.length === 0 ? (
@@ -417,7 +436,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
             />
             <button

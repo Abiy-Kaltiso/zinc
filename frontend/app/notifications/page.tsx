@@ -32,29 +32,18 @@ export default function NotificationsPage() {
     load();
   }
 
-  const typeIcons: Record<string, string> = {
-    lease_submitted: "📋",
-    lease_approved: "✅",
-    lease_denied: "❌",
-    lease_returned: "↩️",
-    lease_expiring: "⏰",
-    lease_expired: "📅",
-    lease_activated: "🟢",
-    screening_required: "🔍",
-    document_uploaded: "📎",
-    amendment_requested: "✏️",
-    amendment_approved: "✅",
-  };
-
   return (
     <ProtectedLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Notifications</h1>
+            <p className="text-sm text-gray-400 mt-1">Stay updated on lease activity</p>
+          </div>
           {notifications.some((n) => !n.is_read) && (
             <button
               onClick={handleMarkAllRead}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
             >
               Mark all as read
             </button>
@@ -62,35 +51,34 @@ export default function NotificationsPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+          <div className="flex justify-center py-16">
+            <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center text-gray-500">
-            No notifications
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-6 py-16 text-center">
+            <p className="text-sm text-gray-400">No notifications</p>
           </div>
         ) : (
           <div className="space-y-2">
             {notifications.map((notif) => (
               <div
                 key={notif.id}
-                className={`bg-white rounded-lg border p-4 flex items-start gap-4 cursor-pointer transition-colors ${
-                  notif.is_read ? "border-gray-200" : "border-blue-200 bg-blue-50"
+                className={`bg-white rounded-xl shadow-sm border p-4 flex items-start gap-4 cursor-pointer transition-all hover:shadow-md ${
+                  notif.is_read ? "border-gray-100" : "border-indigo-200 bg-indigo-50/30"
                 }`}
                 onClick={() => !notif.is_read && handleMarkRead(notif.id)}
               >
-                <span className="text-xl">{typeIcons[notif.notification_type] || "🔔"}</span>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${notif.is_read ? "text-gray-700" : "text-gray-900 font-medium"}`}>
+                  <p className={`text-sm ${notif.is_read ? "text-gray-600" : "text-gray-900 font-medium"}`}>
                     {notif.title}
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">{notif.message}</p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-sm text-gray-400 mt-1">{notif.message}</p>
+                  <p className="text-xs text-gray-300 mt-2">
                     {new Date(notif.created_at).toLocaleString()}
                   </p>
                 </div>
                 {!notif.is_read && (
-                  <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0 mt-2" />
                 )}
               </div>
             ))}

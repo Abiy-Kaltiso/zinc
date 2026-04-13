@@ -260,6 +260,14 @@ export const api = {
     return res.json();
   },
 
+  async unverifyScreening(leaseId: number) {
+    const res = await apiFetch(`/screening/leases/${leaseId}/unverify/`, {
+      method: "POST",
+    });
+    if (!res.ok) throw new Error("Failed to unverify screening");
+    return res.json();
+  },
+
   // Documents
   async getLeaseDocuments(leaseId: number) {
     const res = await apiFetch(`/documents/lease/${leaseId}/`);

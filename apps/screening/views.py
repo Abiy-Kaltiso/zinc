@@ -69,3 +69,14 @@ class ScreeningVerifyView(APIView):
         screening.all_checks_completed = True
         screening.save()
         return Response(ScreeningRecordSerializer(screening).data)
+
+
+class ScreeningUnverifyView(APIView):
+    permission_classes = [IsBoardMember]
+
+    def post(self, request, lease_pk):
+        screening = ScreeningRecord.objects.get(lease_id=lease_pk)
+        screening.verified_by = None
+        screening.verified_at = None
+        screening.update_completion_status()
+        return Response(ScreeningRecordSerializer(screening).data)

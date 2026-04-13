@@ -5,6 +5,7 @@ from apps.screening.views import (
     ScreeningChecklistDetailView,
     ScreeningChecklistListCreateView,
     ScreeningCheckUpdateView,
+    ScreeningUnverifyView,
     ScreeningVerifyView,
 )
 
@@ -16,4 +17,5 @@ urlpatterns = [
     path("leases/<int:lease_pk>/", LeaseScreeningView.as_view(), name="lease-screening"),
     path("leases/<int:lease_pk>/checks/<int:pk>/", ScreeningCheckUpdateView.as_view(), name="check-update"),
     path("leases/<int:lease_pk>/verify/", ScreeningVerifyView.as_view(), name="screening-verify"),
+    path("leases/<int:lease_pk>/unverify/", ScreeningUnverifyView.as_view(), name="screening-unverify"),
 ]

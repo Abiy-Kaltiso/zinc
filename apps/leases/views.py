@@ -31,7 +31,8 @@ class LeaseListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         qs = Lease.objects.select_related("owner").prefetch_related("tenants")
         if user.is_board_member:
-            return qs
+            # Board members don't see drafts (those belong to owners only)
+            return qs.exclude(status=Lease.Status.DRAFT)
         return qs.filter(owner=user)
 
     def perform_create(self, serializer):

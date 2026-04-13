@@ -42,11 +42,29 @@ class LeaseService:
             lease.unit_number, lease.lease_start_date, lease.lease_end_date, exclude_lease_id=lease.pk
         )
 
-        # Create screening record
+        # Require at least one document attached to the lease
+        from django.contrib.contenttypes.models import ContentType
+        from apps.documents.models import Document
+
+        lease_ct = ContentType.objects.get_for_model(Lease)
+        has_document = Document.objects.filter(content_type=lease_ct, object_id=lease.pk).exists()
+        if not has_document:
+            raise ValidationError(
+                "You must upload the lease document before submitting for review."
+            )
+
+        # Create or get screening record
         from apps.screening.models import ScreeningChecklist, ScreeningCheckResult, ScreeningRecord
         from apps.properties.models import Property
 
         screening_record, _ = ScreeningRecord.objects.get_or_create(lease=lease)
+
+        # Require owner attestation before submission
+        if _get_screening_required() and not screening_record.owner_attested:
+            raise ValidationError(
+                "You must submit the screening attestation before submitting this lease for review."
+            )
+
         prop = Property.objects.first()
         if prop:
             checklist_items = ScreeningChecklist.objects.filter(hoa_property=prop)
@@ -85,10 +103,9 @@ class LeaseService:
                     raise ValidationError(
                         "The owner must submit their screening attestation before this lease can be approved."
                     )
-                if not screening.all_checks_completed:
+                if not screening.verified_at:
                     raise ValidationError(
-                        "All screening checks must be completed before approval. "
-                        "Please verify tenant screening first."
+                        "The board must verify the screening attestation before this lease can be approved."
                     )
 
             lease.status = Lease.Status.APPROVED

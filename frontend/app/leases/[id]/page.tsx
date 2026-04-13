@@ -50,12 +50,12 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
       setCommunications(commsData.results || commsData);
       setDocuments(docsData.results || docsData);
 
-      if (leaseData.status !== "draft") {
-        try {
-          const screeningData = await api.getScreening(leaseId);
-          setScreening(screeningData);
-        } catch { /* screening may not exist yet */ }
-      }
+      // Fetch screening for all statuses — backend auto-creates so owner can
+      // attest while lease is still in draft.
+      try {
+        const screeningData = await api.getScreening(leaseId);
+        setScreening(screeningData);
+      } catch { /* screening may not exist yet */ }
     } catch (err) {
       console.error("Failed to load lease:", err);
     } finally {
@@ -145,7 +145,9 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
 
   const isOwner = user?.id === lease.owner;
   const screeningRequired = true; // Could be driven by property setting later
-  const canApprove = !screeningRequired || (screening?.owner_attested && screening?.all_checks_completed);
+  const hasDocuments = documents.length > 0;
+  const canSubmit = hasDocuments && (!screeningRequired || screening?.owner_attested);
+  const canApprove = !screeningRequired || (screening?.owner_attested && !!screening?.verified_at);
 
   return (
     <ProtectedLayout>
@@ -227,6 +229,20 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
           <div className="flex flex-wrap gap-3">
             {lease.status === "draft" && isOwner && (
               <>
+                {!canSubmit && (
+                  <div className="w-full mb-2 flex items-start gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm">
+                    <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                    <span>
+                      Before submitting, you must:
+                      <ul className="mt-1 list-disc list-inside">
+                        {!hasDocuments && <li>Upload the signed lease document</li>}
+                        {!screening?.owner_attested && <li>Submit the screening attestation</li>}
+                      </ul>
+                    </span>
+                  </div>
+                )}
                 <button
                   onClick={() => router.push(`/leases/${lease.id}/edit`)}
                   className="px-4 py-2 text-sm bg-gray-700 text-white rounded-lg hover:bg-gray-800"
@@ -235,8 +251,9 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                 </button>
                 <button
                   onClick={() => handleAction(() => api.submitLease(lease.id))}
-                  disabled={actionLoading}
-                  className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  disabled={actionLoading || !canSubmit}
+                  title={!canSubmit ? "Upload lease document and submit attestation first" : undefined}
+                  className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Submit for Review
                 </button>
@@ -260,7 +277,11 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                     </svg>
                     <span>
-                      Approval is blocked until: {!screening?.owner_attested && "owner attestation is submitted"}{!screening?.owner_attested && !screening?.all_checks_completed && " and "}{!screening?.all_checks_completed && "all screening checks are completed"}.
+                      Approval is blocked until:
+                      <ul className="mt-1 list-disc list-inside">
+                        {!screening?.owner_attested && <li>Owner submits the screening attestation</li>}
+                        {screening?.owner_attested && !screening?.verified_at && <li>Board verifies the screening</li>}
+                      </ul>
                     </span>
                   </div>
                 )}
@@ -315,23 +336,27 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        {/* Owner Attestation */}
+        {/* Tenant Screening (attestation + board verification) */}
         {screening && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-lg font-semibold">Screening Attestation</h2>
-              {screening.owner_attested ? (
-                <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Submitted</span>
+              <h2 className="text-lg font-semibold">Tenant Screening</h2>
+              {screening.verified_at ? (
+                <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Verified</span>
+              ) : screening.owner_attested ? (
+                <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">Awaiting board verification</span>
               ) : (
-                <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Required</span>
+                <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Attestation required</span>
               )}
             </div>
             <p className="text-sm text-gray-500 mb-4">
-              The owner must attest that a background check was completed before the board can approve this lease.
+              Step 1: Owner attests a background check was completed.
+              Step 2: Board reviews the attestation and verifies. Approval is gated on both steps.
             </p>
 
+            {/* Owner's attestation block */}
             {screening.owner_attested ? (
-              <div className="space-y-2">
+              <div className="space-y-2 mb-4">
                 <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 space-y-1 text-sm">
                   <p className="font-medium text-emerald-800">Owner attestation on file</p>
                   <p className="text-emerald-700">Screening company: <span className="font-medium">{screening.attestation_company}</span></p>
@@ -340,7 +365,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                     Submitted {screening.owner_attested_at ? new Date(screening.owner_attested_at).toLocaleString() : ""}
                   </p>
                 </div>
-                {isOwner && lease.status === "pending_review" && (
+                {isOwner && !screening.verified_at && ["draft", "pending_review"].includes(lease.status) && (
                   <button
                     onClick={() => handleAction(() => api.retractAttestation(leaseId))}
                     disabled={actionLoading}
@@ -350,9 +375,8 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                   </button>
                 )}
               </div>
-            ) : isOwner && lease.status === "pending_review" ? (
-              <form onSubmit={handleAttest} className="space-y-4">
-                {/* Legal warning */}
+            ) : isOwner && ["draft", "pending_review"].includes(lease.status) ? (
+              <form onSubmit={handleAttest} className="space-y-4 mb-4">
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
                   <p className="font-semibold mb-1">Legal Notice</p>
                   <p>
@@ -418,83 +442,46 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                 </button>
               </form>
             ) : (
-              <p className="text-sm text-gray-400 italic">
-                {lease.status === "pending_review"
-                  ? "Awaiting owner attestation submission."
-                  : "Attestation was not required or lease is not in review."}
+              <p className="text-sm text-gray-400 italic mb-4">
+                Awaiting owner attestation.
               </p>
             )}
-          </div>
-        )}
 
-        {/* Screening Status */}
-        {screening && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Screening Checks</h2>
-              {screening.all_checks_completed ? (
-                <span className="text-green-600 text-sm font-medium">All checks complete</span>
-              ) : (
-                <span className="text-yellow-600 text-sm font-medium">Checks pending</span>
-              )}
-            </div>
-            <div className="space-y-3">
-              {screening.check_results.map((check) => (
-                <div key={check.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium">{check.checklist_item_name}</p>
-                    {check.is_required && <span className="text-xs text-red-500">Required</span>}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      check.status === "completed" ? "bg-green-100 text-green-700" :
-                      check.status === "waived" ? "bg-gray-100 text-gray-600" :
-                      "bg-yellow-100 text-yellow-700"
-                    }`}>
-                      {check.status}
-                    </span>
-                    {isBoardMember && check.status === "pending" && (
+            {/* Board verification block */}
+            {screening.owner_attested && (
+              <div className="border-t border-gray-100 pt-4">
+                {screening.verified_at ? (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-emerald-700">
+                      Board verified by <span className="font-medium">{screening.verified_by_name}</span> on {new Date(screening.verified_at).toLocaleDateString()}
+                    </p>
+                    {isBoardMember && (
                       <button
-                        onClick={() => handleAction(() => api.updateScreeningCheck(leaseId, check.id, { status: "completed" }))}
-                        className="text-xs text-indigo-600 hover:text-indigo-700"
+                        onClick={() => handleAction(() => api.unverifyScreening(leaseId))}
+                        disabled={actionLoading}
+                        className="px-3 py-1.5 text-xs text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
                       >
-                        Mark Complete
-                      </button>
-                    )}
-                    {isBoardMember && check.status === "completed" && (
-                      <button
-                        onClick={() => handleAction(() => api.updateScreeningCheck(leaseId, check.id, { status: "pending" }))}
-                        className="text-xs text-red-500 hover:text-red-700"
-                      >
-                        Reset
+                        Undo Verification
                       </button>
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
-            {isBoardMember && !screening.verified_at && (
-              <button
-                onClick={() => handleAction(() => api.verifyScreening(leaseId))}
-                disabled={actionLoading}
-                className="mt-4 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-              >
-                Verify All Screening Complete
-              </button>
-            )}
-            {screening.verified_at && (
-              <div className="mt-4 flex items-center justify-between">
-                <p className="text-sm text-green-600">
-                  Verified by {screening.verified_by_name} on {new Date(screening.verified_at).toLocaleDateString()}
-                </p>
-                {isBoardMember && (
-                  <button
-                    onClick={() => handleAction(() => api.unverifyScreening(leaseId))}
-                    disabled={actionLoading}
-                    className="px-3 py-1.5 text-xs text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
-                  >
-                    Undo Verification
-                  </button>
+                ) : isBoardMember ? (
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm text-gray-600">
+                      Review the owner&apos;s attestation and any uploaded screening documents, then verify.
+                    </p>
+                    <button
+                      onClick={() => handleAction(() => api.verifyScreening(leaseId))}
+                      disabled={actionLoading}
+                      className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 whitespace-nowrap"
+                    >
+                      Verify Screening
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">
+                    Awaiting board verification.
+                  </p>
                 )}
               </div>
             )}

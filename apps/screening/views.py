@@ -37,9 +37,11 @@ class LeaseScreeningView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
+        lease_pk = self.kwargs["lease_pk"]
+        screening, _ = ScreeningRecord.objects.get_or_create(lease_id=lease_pk)
         return ScreeningRecord.objects.prefetch_related(
             "check_results__checklist_item"
-        ).get(lease_id=self.kwargs["lease_pk"])
+        ).get(pk=screening.pk)
 
 
 class ScreeningCheckUpdateView(generics.UpdateAPIView):
@@ -88,7 +90,7 @@ class ScreeningAttestView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, lease_pk):
-        screening = ScreeningRecord.objects.get(lease_id=lease_pk)
+        screening, _ = ScreeningRecord.objects.get_or_create(lease_id=lease_pk)
 
         if screening.lease.owner_id != request.user.pk:
             return Response(
@@ -130,7 +132,7 @@ class ScreeningAttestView(APIView):
 
     def delete(self, request, lease_pk):
         """Allow owner to retract their attestation."""
-        screening = ScreeningRecord.objects.get(lease_id=lease_pk)
+        screening, _ = ScreeningRecord.objects.get_or_create(lease_id=lease_pk)
 
         if screening.lease.owner_id != request.user.pk:
             return Response(

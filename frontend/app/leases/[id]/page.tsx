@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAuth } from "@/lib/auth";
-import { api } from "@/lib/api";
+import { api, resolveMediaUrl } from "@/lib/api";
 import { Lease, LeaseReview, ScreeningRecord, CommunicationLog, Document } from "@/lib/types";
 
 export default function LeaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -502,7 +502,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                     </p>
                   </div>
                   <a
-                    href={doc.file.startsWith("http") ? doc.file : `http://localhost:8000${doc.file}`}
+                    href={resolveMediaUrl(doc.file)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-indigo-600 hover:text-indigo-700"

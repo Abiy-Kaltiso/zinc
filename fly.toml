@@ -1,0 +1,33 @@
+# Fly.io configuration for the Glenwood Park HOA Django backend.
+# See DEPLOY.md for first-time setup instructions.
+
+app = "glenwood-hoa-api"  # change this to your own unique app name
+primary_region = "iad"    # pick the region closest to you (iad, ord, lax, sea, etc.)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[deploy]
+  # Run migrations on every deploy before the new version goes live.
+  release_command = "python manage.py migrate --noinput"
+
+[env]
+  DJANGO_SETTINGS_MODULE = "config.settings.production"
+  PORT = "8000"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 20
+    hard_limit = 25
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

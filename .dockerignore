@@ -1,0 +1,40 @@
+# VCS
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg
+
+# Virtualenvs
+venv
+.venv
+env
+
+# Local dev artifacts
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+.env
+.env.local
+*.log
+
+# Frontend — Fly.io backend image doesn't need this
+frontend/
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml

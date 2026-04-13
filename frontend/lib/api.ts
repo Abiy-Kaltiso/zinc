@@ -1,5 +1,17 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
+/**
+ * Origin used to resolve relative media file URLs returned by the backend
+ * (e.g. "/media/documents/foo.pdf"). In production with R2, file URLs are
+ * already absolute, so this helper is a no-op for those.
+ */
+export function resolveMediaUrl(path: string): string {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const origin = API_BASE.replace(/\/api\/v1\/?$/, "");
+  return `${origin}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 interface TokenPair {
   access: string;
   refresh: string;

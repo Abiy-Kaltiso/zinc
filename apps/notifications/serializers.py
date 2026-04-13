@@ -19,5 +19,5 @@ class CommunicationLogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CommunicationLog
-        fields = ["id", "lease", "sender", "sender_name", "sender_role", "message", "created_at"]
-        read_only_fields = ["id", "lease", "sender", "created_at"]
+        fields = ["id", "lease", "sender", "sender_name", "sender_role", "message", "created_at", "updated_at"]
+        read_only_fields = ["id", "lease", "sender", "created_at", "updated_at"]

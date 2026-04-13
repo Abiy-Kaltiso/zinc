@@ -82,3 +82,69 @@ class ScreeningUnverifyView(APIView):
         screening.update_completion_status()
         screening.refresh_from_db()
         return Response(ScreeningRecordSerializer(screening).data)
+
+
+class ScreeningAttestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, lease_pk):
+        screening = ScreeningRecord.objects.get(lease_id=lease_pk)
+
+        if screening.lease.owner_id != request.user.pk:
+            return Response(
+                {"detail": "Only the lease owner can submit the attestation."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        confirmed = request.data.get("confirmed", False)
+        if not confirmed:
+            return Response(
+                {"detail": "You must confirm the attestation to proceed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        company = request.data.get("company", "").strip()
+        attestation_date = request.data.get("date") or None
+
+        if not company:
+            return Response(
+                {"detail": "Screening company name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not attestation_date:
+            return Response(
+                {"detail": "Screening date is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        screening.owner_attested = True
+        screening.attestation_company = company
+        screening.attestation_date = attestation_date
+        screening.owner_attested_at = timezone.now()
+        screening.save(update_fields=[
+            "owner_attested", "attestation_company", "attestation_date",
+            "owner_attested_at", "updated_at",
+        ])
+
+        return Response(ScreeningRecordSerializer(screening).data)
+
+    def delete(self, request, lease_pk):
+        """Allow owner to retract their attestation."""
+        screening = ScreeningRecord.objects.get(lease_id=lease_pk)
+
+        if screening.lease.owner_id != request.user.pk:
+            return Response(
+                {"detail": "Only the lease owner can retract the attestation."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        screening.owner_attested = False
+        screening.attestation_company = ""
+        screening.attestation_date = None
+        screening.owner_attested_at = None
+        screening.save(update_fields=[
+            "owner_attested", "attestation_company", "attestation_date",
+            "owner_attested_at", "updated_at",
+        ])
+
+        return Response(ScreeningRecordSerializer(screening).data)

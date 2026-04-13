@@ -28,6 +28,13 @@ class ScreeningRecord(models.Model):
     )
     verified_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
+
+    # Owner attestation fields
+    owner_attested = models.BooleanField(default=False)
+    attestation_company = models.CharField(max_length=200, blank=True)
+    attestation_date = models.DateField(null=True, blank=True)
+    owner_attested_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

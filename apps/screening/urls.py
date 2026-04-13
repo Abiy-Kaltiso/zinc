@@ -2,6 +2,7 @@ from django.urls import path
 
 from apps.screening.views import (
     LeaseScreeningView,
+    ScreeningAttestView,
     ScreeningChecklistDetailView,
     ScreeningChecklistListCreateView,
     ScreeningCheckUpdateView,
@@ -18,4 +19,5 @@ urlpatterns = [
     path("leases/<int:lease_pk>/checks/<int:pk>/", ScreeningCheckUpdateView.as_view(), name="check-update"),
     path("leases/<int:lease_pk>/verify/", ScreeningVerifyView.as_view(), name="screening-verify"),
     path("leases/<int:lease_pk>/unverify/", ScreeningUnverifyView.as_view(), name="screening-unverify"),
+    path("leases/<int:lease_pk>/attest/", ScreeningAttestView.as_view(), name="screening-attest"),
 ]

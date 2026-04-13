@@ -81,7 +81,11 @@ class LeaseService:
         if decision == LeaseReview.Decision.APPROVED:
             if _get_screening_required():
                 screening = getattr(lease, "screening", None)
-                if not screening or not screening.all_checks_completed:
+                if not screening or not screening.owner_attested:
+                    raise ValidationError(
+                        "The owner must submit their screening attestation before this lease can be approved."
+                    )
+                if not screening.all_checks_completed:
                     raise ValidationError(
                         "All screening checks must be completed before approval. "
                         "Please verify tenant screening first."

@@ -29,6 +29,13 @@ class ScreeningRecordSerializer(serializers.ModelSerializer):
         fields = [
             "id", "lease", "all_checks_completed",
             "verified_by", "verified_by_name", "verified_at",
-            "notes", "check_results", "created_at", "updated_at",
+            "notes", "check_results",
+            "owner_attested", "attestation_company", "attestation_date", "owner_attested_at",
+            "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "lease", "all_checks_completed", "verified_by", "verified_at", "created_at"]
+        read_only_fields = [
+            "id", "lease", "all_checks_completed",
+            "verified_by", "verified_at",
+            "owner_attested", "owner_attested_at",
+            "created_at",
+        ]

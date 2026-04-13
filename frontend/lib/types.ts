@@ -127,6 +127,10 @@ export interface ScreeningRecord {
   verified_at: string | null;
   notes: string;
   check_results: ScreeningCheckResult[];
+  owner_attested: boolean;
+  attestation_company: string;
+  attestation_date: string | null;
+  owner_attested_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -185,6 +189,7 @@ export interface CommunicationLog {
   sender_role: string;
   message: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface PaginatedResponse<T> {

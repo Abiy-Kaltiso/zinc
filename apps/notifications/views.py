@@ -59,3 +59,18 @@ class CommunicationLogListCreateView(generics.ListCreateAPIView):
             sender=self.request.user,
             lease_id=self.kwargs["lease_pk"],
         )
+
+
+class CommunicationLogDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CommunicationLogSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return CommunicationLog.objects.filter(
+            lease_id=self.kwargs["lease_pk"],
+            sender=self.request.user,
+        )
+
+    def update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return super().update(request, *args, **kwargs)

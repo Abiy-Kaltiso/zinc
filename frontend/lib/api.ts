@@ -268,6 +268,26 @@ export const api = {
     return res.json();
   },
 
+  async submitAttestation(leaseId: number, data: { confirmed: boolean; company: string; date: string }) {
+    const res = await apiFetch(`/screening/leases/${leaseId}/attest/`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || JSON.stringify(err));
+    }
+    return res.json();
+  },
+
+  async retractAttestation(leaseId: number) {
+    const res = await apiFetch(`/screening/leases/${leaseId}/attest/`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to retract attestation");
+    return res.json();
+  },
+
   // Documents
   async getLeaseDocuments(leaseId: number) {
     const res = await apiFetch(`/documents/lease/${leaseId}/`);
@@ -323,6 +343,22 @@ export const api = {
     });
     if (!res.ok) throw new Error("Failed to send message");
     return res.json();
+  },
+
+  async updateCommunication(leaseId: number, msgId: number, message: string) {
+    const res = await apiFetch(`/notifications/leases/${leaseId}/communications/${msgId}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ message }),
+    });
+    if (!res.ok) throw new Error("Failed to update message");
+    return res.json();
+  },
+
+  async deleteCommunication(leaseId: number, msgId: number) {
+    const res = await apiFetch(`/notifications/leases/${leaseId}/communications/${msgId}/`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to delete message");
   },
 
   // Reports

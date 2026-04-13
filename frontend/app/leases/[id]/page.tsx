@@ -24,6 +24,17 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
   const [newMessage, setNewMessage] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
 
+  // Attestation form state
+  const [attestConfirmed, setAttestConfirmed] = useState(false);
+  const [attestCompany, setAttestCompany] = useState("");
+  const [attestDate, setAttestDate] = useState("");
+  const [attestLoading, setAttestLoading] = useState(false);
+  const [attestError, setAttestError] = useState("");
+
+  // Communication edit state
+  const [editingMsgId, setEditingMsgId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState("");
+
   const leaseId = Number(id);
 
   async function loadData() {
@@ -54,7 +65,7 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
 
   useEffect(() => { loadData(); }, [leaseId]);
 
-  async function handleAction(action: () => Promise<unknown>, successMsg?: string) {
+  async function handleAction(action: () => Promise<unknown>) {
     setError("");
     setActionLoading(true);
     try {
@@ -75,6 +86,51 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
     });
   }
 
+  async function handleEditMessage(msgId: number) {
+    if (!editingText.trim()) return;
+    setActionLoading(true);
+    try {
+      await api.updateCommunication(leaseId, msgId, editingText);
+      setEditingMsgId(null);
+      setEditingText("");
+      await loadData();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to edit message");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleDeleteMessage(msgId: number) {
+    setActionLoading(true);
+    try {
+      await api.deleteCommunication(leaseId, msgId);
+      await loadData();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete message");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleAttest(e: React.FormEvent) {
+    e.preventDefault();
+    setAttestError("");
+    setAttestLoading(true);
+    try {
+      await api.submitAttestation(leaseId, {
+        confirmed: attestConfirmed,
+        company: attestCompany,
+        date: attestDate,
+      });
+      await loadData();
+    } catch (err: unknown) {
+      setAttestError(err instanceof Error ? err.message : "Failed to submit attestation");
+    } finally {
+      setAttestLoading(false);
+    }
+  }
+
   if (loading) {
     return (
       <ProtectedLayout>
@@ -88,6 +144,8 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
   if (!lease) return null;
 
   const isOwner = user?.id === lease.owner;
+  const screeningRequired = true; // Could be driven by property setting later
+  const canApprove = !screeningRequired || (screening?.owner_attested && screening?.all_checks_completed);
 
   return (
     <ProtectedLayout>
@@ -196,10 +254,21 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
+                {!canApprove && (
+                  <div className="w-full mb-2 flex items-start gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm">
+                    <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                    <span>
+                      Approval is blocked until: {!screening?.owner_attested && "owner attestation is submitted"}{!screening?.owner_attested && !screening?.all_checks_completed && " and "}{!screening?.all_checks_completed && "all screening checks are completed"}.
+                    </span>
+                  </div>
+                )}
                 <button
                   onClick={() => handleAction(() => api.reviewLease(lease.id, "approved", reviewComments))}
-                  disabled={actionLoading}
-                  className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  disabled={actionLoading || !canApprove}
+                  title={!canApprove ? "Screening attestation and checks must be complete before approving" : undefined}
+                  className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Approve
                 </button>
@@ -240,19 +309,129 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
               </button>
             )}
 
-            {["denied", "expired", "terminated", "draft"].includes(lease.status) && (
-              <p className="text-sm text-gray-500 py-2">
-                {lease.status === "draft" ? "This lease is in draft. Submit it for board review when ready." : "No actions available for this lease."}
-              </p>
+            {["denied", "expired", "terminated", "draft"].includes(lease.status) && !isOwner && (
+              <p className="text-sm text-gray-500 py-2">No actions available for this lease.</p>
             )}
           </div>
         </div>
+
+        {/* Owner Attestation */}
+        {screening && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-semibold">Screening Attestation</h2>
+              {screening.owner_attested ? (
+                <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Submitted</span>
+              ) : (
+                <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Required</span>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              The owner must attest that a background check was completed before the board can approve this lease.
+            </p>
+
+            {screening.owner_attested ? (
+              <div className="space-y-2">
+                <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 space-y-1 text-sm">
+                  <p className="font-medium text-emerald-800">Owner attestation on file</p>
+                  <p className="text-emerald-700">Screening company: <span className="font-medium">{screening.attestation_company}</span></p>
+                  <p className="text-emerald-700">Date completed: <span className="font-medium">{screening.attestation_date}</span></p>
+                  <p className="text-xs text-emerald-600 mt-1">
+                    Submitted {screening.owner_attested_at ? new Date(screening.owner_attested_at).toLocaleString() : ""}
+                  </p>
+                </div>
+                {isOwner && lease.status === "pending_review" && (
+                  <button
+                    onClick={() => handleAction(() => api.retractAttestation(leaseId))}
+                    disabled={actionLoading}
+                    className="text-xs text-red-500 hover:text-red-700 underline"
+                  >
+                    Retract attestation
+                  </button>
+                )}
+              </div>
+            ) : isOwner && lease.status === "pending_review" ? (
+              <form onSubmit={handleAttest} className="space-y-4">
+                {/* Legal warning */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+                  <p className="font-semibold mb-1">Legal Notice</p>
+                  <p>
+                    By submitting this attestation, you confirm under penalty of HOA policy that a background and/or
+                    credit check was conducted through the company listed below. Falsification of screening records
+                    is subject to a <strong>$500 fine</strong> and may result in lease termination and additional
+                    legal action per the HOA CC&amp;Rs.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">
+                      Screening Company <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={attestCompany}
+                      onChange={(e) => setAttestCompany(e.target.value)}
+                      placeholder="e.g. TransUnion SmartMove"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">
+                      Date Completed <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={attestDate}
+                      onChange={(e) => setAttestDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={attestConfirmed}
+                    onChange={(e) => setAttestConfirmed(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 flex-shrink-0"
+                  />
+                  <span className="text-sm text-gray-700">
+                    I confirm that a background check was completed for all tenants named on this lease,
+                    and I understand that falsifying this information is subject to a $500 fine.
+                  </span>
+                </label>
+
+                {attestError && (
+                  <p className="text-sm text-red-600">{attestError}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={attestLoading || !attestConfirmed}
+                  className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {attestLoading ? "Submitting..." : "Submit Attestation"}
+                </button>
+              </form>
+            ) : (
+              <p className="text-sm text-gray-400 italic">
+                {lease.status === "pending_review"
+                  ? "Awaiting owner attestation submission."
+                  : "Attestation was not required or lease is not in review."}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Screening Status */}
         {screening && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Screening Status</h2>
+              <h2 className="text-lg font-semibold">Screening Checks</h2>
               {screening.all_checks_completed ? (
                 <span className="text-green-600 text-sm font-medium">All checks complete</span>
               ) : (
@@ -361,7 +540,6 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
                   const formData = new FormData();
                   formData.append("file", uploadFile);
                   formData.append("title", uploadFile.name);
-                  // Fetch category
                   try {
                     const cats = await fetch(
                       `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/documents/categories/`,
@@ -419,16 +597,60 @@ export default function LeaseDetailPage({ params }: { params: Promise<{ id: stri
             {communications.length === 0 ? (
               <p className="text-sm text-gray-500">No messages yet</p>
             ) : (
-              communications.map((msg) => (
-                <div key={msg.id} className="bg-gray-50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span className="font-medium text-gray-700">{msg.sender_name}</span>
-                    <span className="capitalize">({msg.sender_role.replace("_", " ")})</span>
-                    <span>{new Date(msg.created_at).toLocaleString()}</span>
+              communications.map((msg) => {
+                const isMyMessage = user?.id === msg.sender;
+                const isEditing = editingMsgId === msg.id;
+
+                return (
+                  <div key={msg.id} className="bg-gray-50 rounded-lg p-3 group">
+                    <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-700">{msg.sender_name}</span>
+                        <span className="capitalize">({msg.sender_role.replace("_", " ")})</span>
+                        <span>{new Date(msg.created_at).toLocaleString()}</span>
+                        {msg.updated_at !== msg.created_at && (
+                          <span className="text-gray-400 italic">(edited)</span>
+                        )}
+                      </div>
+                      {isMyMessage && !isEditing && (
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => { setEditingMsgId(msg.id); setEditingText(msg.message); }}
+                            className="text-indigo-500 hover:text-indigo-700 text-xs"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            className="text-red-400 hover:text-red-600 text-xs"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {isEditing ? (
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                          autoFocus
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleEditMessage(msg.id);
+                            if (e.key === "Escape") { setEditingMsgId(null); setEditingText(""); }
+                          }}
+                        />
+                        <button onClick={() => handleEditMessage(msg.id)} className="text-xs text-indigo-600 font-medium">Save</button>
+                        <button onClick={() => { setEditingMsgId(null); setEditingText(""); }} className="text-xs text-gray-500">Cancel</button>
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-sm">{msg.message}</p>
+                    )}
                   </div>
-                  <p className="mt-1 text-sm">{msg.message}</p>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
           <div className="flex gap-2">
